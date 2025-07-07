@@ -8,8 +8,11 @@ const axios = require('axios');
 
 const myJson = "/json-api";
 const myTodo = "/todo-";
+const myTodos = "/todos-";
 
 var todos = [];
+
+var sortedtodos = [];
 
 const data = [
     {
@@ -431,6 +434,281 @@ app.post('/qist-post-login', async (req,res)=> {
     });
   }
 })
+
+
+
+
+
+
+// TO-DO POST API !!!!!!!!!
+
+app.post(`${myTodos}create`,(req,res)=>{
+try{
+  const {title, description} = req.body;
+
+  if(!title || !description){
+    return res.status(400).json({
+      message: "Cannot put data both fields are required",
+      error: "Required fields cannot be sent empty"
+    });
+  }
+
+  const newTodo = {
+      id:  sortedtodos.length + 1,
+      title: title,
+      description: description
+  }
+
+  sortedtodos.push(newTodo);
+
+  return res.status(201).json({
+    message: "Todo added successfully",
+    updatedTodo: sortedtodos
+  });
+  
+
+  
+}catch(err){
+  return res.status(500).json({
+    message: "Cannot add to-do",
+    error: err
+  });
+}
+});
+
+// TO-DO PUT API !!!!!!!!!
+
+app.put(`${myTodos}update/:id`,(req,res)=>{
+  try{
+
+  const todoId = req.params.id;
+
+  const {title, description} = req.body;
+  const index = sortedtodos.findIndex(t => t.id == todoId);
+
+  if(index === -1){
+   return res.status(400).json({
+      message: "Cannot find to-do",
+      error: "Wrong id"
+    });
+  }
+
+  if(!title || !description){
+  return  res.status(401).json({
+      message: "All fields are required in PUT API",
+      error: "Missing required fields"
+    });
+  }
+  
+  const updateTodo = {
+    id: todoId,
+    title: title,
+    description: description
+  };
+
+  
+
+  todos[index] = updateTodo;
+
+  return res.status(201).json({
+    message: "Updated todo successfully",
+    updatedTodo: updateTodo
+  });
+
+  
+
+  }catch(error){
+  return res.status(500).json({
+      message: "Cannot update to-do",
+      error: error
+    });
+  }
+});
+
+// TO-DO PATCH API !!!!!!!!!
+
+app.patch(`${myTodos}correct/:id`, (req,res)=>{
+
+  try{
+  const todoId = req.params.id;
+  const {title, description} = req.body;
+
+  const index = sortedtodos.findIndex(t => t.id == todoId);
+
+  if(index === -1){
+    return res.status(404).json({
+      message: "No todo found ",
+      error: "Id not correct"
+    });
+  }
+
+  if(!title && !description){
+    return res.status(400).json({
+      message: "Patch requires atleast one field for update",
+      error: "No data sent for patch"
+    });
+  }
+
+  const currentTodo = sortedtodos[index];
+
+  const updateTodo = {
+    ...currentTodo,
+    ...(title && {title : title}),
+    ...(description && {description : description})
+  };
+
+  todos[index] = updateTodo;
+
+  return res.status(201).json({
+    message: "To-do patched successfully",
+    updatedTodo: updateTodo,
+     changes: {
+        title: title ? `Changed from "${currentTodo.title}" to "${title}"` : "No change",
+        description: description ? `Changed from "${currentTodo.description}" to "${description}"` : "No change"
+      },
+  });
+
+  }catch(err){
+    return res.status(500).json({
+      message: "Cannot patch to-do",
+      error: err
+    });
+  }
+
+});
+
+
+
+// TO-DO GET SORTED API USING ID !!!!!!!!!
+
+app.get(`${myTodos}get-sorted-id/:key`, (req,res)=>{
+  
+  try{
+  var key = req.params.key;
+    console.log("Value of key: ",key);  
+    if(!key){
+      return res.status(400).json({
+        message: "key is missing",
+        note: "Please give asec or desc in url to get data sorted in asecending or descending order",
+      });
+    }
+    
+    return res.status(201).json({
+    message: "Here's the sorted to-dos data",
+    todo: key == "asec" ? sortedtodos.sort((a, b ) => a.id - b.id) : key == "desc" ? sortedtodos.sort((a, b)=> b.id - a.id) : sortedtodos
+    });
+    
+
+  // return res.status(201).json({
+  //   message: "Here's the whole to-dos data",
+  //   todo: sortedtodos
+  // });
+
+  }catch(err){
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: err
+    })
+  }
+  
+});
+
+
+// TO-DO GET SORTED API USING ID !!!!!!!!!
+
+app.get(`${myTodos}get-sorted-description/:key`, (req,res)=>{
+  
+  try{
+  var key = req.params.key;
+    console.log("Value of key: ",key);  
+    if(!key){
+      return res.status(400).json({
+        message: "key is missing",
+        note: "Please give asec or desc in url to get data sorted in asecending or descending order",
+      });
+    }
+    
+    return res.status(201).json({
+    message: "Here's the sorted to-dos data",
+    todo: key == "asec" ? sortedtodos.sort((a, b ) => a.description.localeCompare(b.description)) : key == "desc" ? sortedtodos.sort((a, b)=> b.description.localeCompare(a.description)) : sortedtodos
+    });
+    
+
+  // return res.status(201).json({
+  //   message: "Here's the whole to-dos data",
+  //   todo: sortedtodos
+  // });
+
+  }catch(err){
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: err
+    })
+  }
+  
+});
+
+
+// TO-DO GET SEARCHING API USING DESCRIPTION !!!!!!!!!
+
+app.get(`${myTodos}get-search-description`, (req, res) => {
+  try {
+    const key = req.body.description;
+    console.log("Search keyword:", key);
+
+    if (!key) {
+      return res.status(400).json({
+        message: "Search keyword is missing",
+        note: "Please provide a description field in the JSON body",
+      });
+    }
+
+    const results = sortedtodos.filter(todo =>
+      todo.description.toLowerCase().includes(key.toLowerCase())
+    );
+
+    console.log("Results found: ", results);
+
+    return res.status(200).json({
+      message: `Found ${results.length} matching to-do(s)`,
+      results,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: err,
+    });
+  }
+});
+
+
+
+// TO-DO GET-ONE OBJECT API !!!!!!!!!
+
+app.get(`${myTodos}get/:id`, (req,res)=>{
+
+  try{
+    const todoId = req.params.id;
+    const index = sortedtodos.findIndex(t=> t.id == todoId);
+    if(index === -1){
+    return res.status(404).json({
+      message: "No todo found ",
+      error: "Id not correct"
+    });
+  }
+  return res.status(201).json({
+    message: "To-do data which you required",
+    todo: sortedtodos[index]
+  });
+  }catch(err){
+   return res.status(500).json({
+      message: "Internal Server Error",
+      error: err
+    })
+  }
+});
+
 
 app.listen(PORT, ()=>{
     console.log(`Server running on PORT: ${PORT}`);
